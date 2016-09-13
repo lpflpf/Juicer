@@ -7,7 +7,7 @@
     Gtalk: badkaikai@gmail.com
     Blog: http://benben.cc
     Licence: MIT License
-    Version: 0.6.14
+    Version: 0.6.9-stable
 */
 
 (function() {
@@ -32,10 +32,9 @@
             });
         }
 
-        if(juicer.documentHTML) {
-            juicer.compile.call(juicer, juicer.documentHTML);
-            juicer.documentHTML = '';
-        }
+        //if(typeof(document) !== 'undefined' && document.body) {
+        //    juicer.compile.call(juicer, document.body.innerHTML);
+        //}
 
         if(arguments.length == 1) {
             return juicer.compile.apply(juicer, args);
@@ -59,7 +58,7 @@
             return __escapehtml.escapehash[k];
         },
         escaping: function(str) {
-            return typeof(str) !== 'string' ? str : str.replace(/[&<>"']/igm, this.escapereplace);
+            return typeof(str) !== 'string' ? str : str.replace(/[&<>"]/igm, this.escapereplace);
         },
         detection: function(data) {
             return typeof(data) === 'undefined' ? '' : data;
@@ -138,9 +137,8 @@
     };
 
     juicer.__cache = {};
-    juicer.version = '0.6.14';
+    juicer.version = '0.6.9-stable';
     juicer.settings = {};
-    juicer.documentHTML = '';
 
     juicer.tags = {
         operationOpen: '{@',
@@ -305,7 +303,7 @@
                     var _iterate = 'i' + _counter++;
                     return '<% ~function() {' +
                                 'for(var ' + _iterate + ' in ' + _name + ') {' +
-                                    'if(' + _name + '.hasOwnProperty(' + _iterate + ')) {' +
+                                    'if(' + _name + '.hasOwnProperty(' + _iterate + ') && typeof ' + _name + '[' + _iterate + '] != "function") {' +
                                         'var ' + alias + '=' + _name + '[' + _iterate + '];' +
                                         (key ? ('var ' + key + '=' + _iterate + ';') : '') +
                             ' %>';
@@ -421,12 +419,6 @@
                         return $;
                     }
 
-                    // avoid SyntaxError: Unexpected number
-
-                    if(statement.match(/^\d+/igm)) {
-                        return $;
-                    }
-
                     buffer.push(statement); // fuck ie
                 }
 
@@ -438,13 +430,13 @@
                 replace(juicer.settings.ifstart, variableAnalyze).
                 replace(juicer.settings.elseifstart, variableAnalyze).
                 replace(juicer.settings.include, variableAnalyze).
-                replace(/[\+\-\*\/%!\?\|\^&~<>=,\(\)\[\]]\s*([A-Za-z_0-9]+)/igm, variableAnalyze);
+                replace(/[\+\-\*\/%!\?\|\^&~<>=,\(\)\[\]]\s*([A-Za-z_]+)/igm, variableAnalyze);
 
-            for(var i = 0; i < buffer.length; i++) {
+            for(var i = 0;i < buffer.length; i++) {
                 prefix += 'var ' + buffer[i] + '=_.' + buffer[i] + ';';
             }
 
-            for(var i = 0; i < method.length; i++) {
+            for(var i = 0;i < method.length; i++) {
                 prefix += 'var ' + method[i] + '=_method.' + method[i] + ';';
             }
 
@@ -518,32 +510,13 @@
             options = __creator(options, this.options);
         }
 
-        var that = this;
-        var cacheStore = {
-            get: function(tpl) {
-                if(options.cachestore) {
-                    return options.cachestore.get(tpl);
-                }
-
-                return that.__cache[tpl];
-            },
-
-            set: function(tpl, val) {
-                if(options.cachestore) {
-                    return options.cachestore.set(tpl, val);
-                }
-
-                return that.__cache[tpl] = val;
-            }
-        };
-
         try {
-            var engine = cacheStore.get(tpl) ? 
-                cacheStore.get(tpl) : 
+            var engine = this.__cache[tpl] ? 
+                this.__cache[tpl] : 
                 new this.template(this.options).parse(tpl, options);
 
             if(!options || options.cache !== false) {
-                cacheStore.set(tpl, engine);
+                this.__cache[tpl] = engine;
             }
 
             return engine;
@@ -568,10 +541,6 @@
     // avoid memory leak for node.js
     if(typeof(global) !== 'undefined' && typeof(window) === 'undefined') {
         juicer.set('cache', false);
-    }
-
-    if(typeof(document) !== 'undefined' && document.body) {
-        juicer.documentHTML = document.body.innerHTML;
     }
 
     typeof(module) !== 'undefined' && module.exports ? module.exports = juicer : this.juicer = juicer;
